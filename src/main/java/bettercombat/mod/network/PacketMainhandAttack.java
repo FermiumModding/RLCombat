@@ -2,9 +2,11 @@ package bettercombat.mod.network;
 
 import bettercombat.mod.util.Helpers;
 import io.netty.buffer.ByteBuf;
+import meldexun.reachfix.util.ReachFixUtil;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.play.server.SPacketAnimation;
+import net.minecraft.util.EnumHand;
 import net.minecraft.world.GameType;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.fml.common.FMLCommonHandler;
@@ -64,15 +66,26 @@ public class PacketMainhandAttack implements IMessage {
         private static void handle(PacketMainhandAttack message, MessageContext ctx) {
             EntityPlayerMP player = ctx.getServerHandler().player;
             Entity theEntity = player.world.getEntityByID(message.entityId);
-            if(theEntity != null) {
+            if(theEntity != null && theEntity != player) {
                 if(player.interactionManager.getGameType() == GameType.SPECTATOR) {
                     player.setSpectatingEntity(theEntity);
                 }
                 else {
-                    Helpers.attackTargetEntityItem(player, theEntity, false, message.motionX, message.motionY, message.motionZ);
+                    attemptValidate(message, player, theEntity);
                 }
             }
             ((WorldServer)player.world).getEntityTracker().sendToTracking(player, new SPacketAnimation(player, 0));
+        }
+        
+        private static void attemptValidate(PacketMainhandAttack message, EntityPlayerMP player, Entity theEntity) {
+            double reach = ReachFixUtil.getEntityReach(player, EnumHand.MAIN_HAND);
+            double dist = player.getDistanceSq(theEntity);
+            if(dist > reach * reach + 0.5) return;//Small padding to help account for desync
+            //Could recheck LOS but likely to cause more noticeable desync issues, rely on distance
+            double motionX = Double.isFinite(message.motionX) ? Math.min(Math.max(-100, message.motionX), 100) : 0;
+            double motionY = Double.isFinite(message.motionY) ? Math.min(Math.max(-100, message.motionY), 100) : 0;
+            double motionZ = Double.isFinite(message.motionZ) ? Math.min(Math.max(-100, message.motionZ), 100) : 0;
+            Helpers.attackTargetEntityItem(player, theEntity, false, motionX, motionY, motionZ);
         }
     }
 }

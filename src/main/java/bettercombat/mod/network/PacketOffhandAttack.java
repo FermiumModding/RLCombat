@@ -1,10 +1,15 @@
 package bettercombat.mod.network;
 
+import bettercombat.mod.util.ConfigurationHandler;
 import bettercombat.mod.util.Helpers;
 import io.netty.buffer.ByteBuf;
+import meldexun.reachfix.util.ReachFixUtil;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.IEntityOwnable;
 import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.server.SPacketAnimation;
+import net.minecraft.util.EnumHand;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.network.ByteBufUtils;
@@ -63,10 +68,27 @@ public class PacketOffhandAttack implements IMessage {
         private static void handle(PacketOffhandAttack message, MessageContext ctx) {
             EntityPlayerMP player = ctx.getServerHandler().player;
             Entity theEntity = player.world.getEntityByID(message.entityId);
-            if(theEntity != null) {
-                Helpers.attackTargetEntityItem(player, theEntity, true, message.motionX, message.motionY, message.motionZ);
+            
+            if(theEntity != null && theEntity != player) {
+                attemptValidate(message, player, theEntity);
             }
             ((WorldServer)player.world).getEntityTracker().sendToTracking(player, new SPacketAnimation(player, 3));
+        }
+        
+        private static void attemptValidate(PacketOffhandAttack message, EntityPlayerMP player, Entity theEntity) {
+            if(!ConfigurationHandler.server.enableOffhandAttack) return;
+            if(theEntity instanceof IEntityOwnable && ((IEntityOwnable)theEntity).getOwner() == player) return;
+            ItemStack stackOffHand = player.getHeldItemOffhand();
+            if(stackOffHand.isEmpty() || !ConfigurationHandler.isItemAttackUsableOffhand(stackOffHand.getItem())) return;
+            if(!ConfigurationHandler.isEntityAttackableOffhand(theEntity)) return;
+            double reach = ReachFixUtil.getEntityReach(player, EnumHand.OFF_HAND);
+            double dist = player.getDistanceSq(theEntity);
+            if(dist > reach * reach + 0.5) return;//Small padding to help account for desync
+            //Could recheck LOS but likely to cause more noticeable desync issues, rely on distance
+            double motionX = Double.isFinite(message.motionX) ? Math.min(Math.max(-100, message.motionX), 100) : 0;
+            double motionY = Double.isFinite(message.motionY) ? Math.min(Math.max(-100, message.motionY), 100) : 0;
+            double motionZ = Double.isFinite(message.motionZ) ? Math.min(Math.max(-100, message.motionZ), 100) : 0;
+            Helpers.attackTargetEntityItem(player, theEntity, true, motionX, motionY, motionZ);
         }
     }
 }
