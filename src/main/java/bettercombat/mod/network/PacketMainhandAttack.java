@@ -1,8 +1,8 @@
 package bettercombat.mod.network;
 
 import bettercombat.mod.util.Helpers;
+import bettercombat.mod.util.ReachFixUtil;
 import io.netty.buffer.ByteBuf;
-import meldexun.reachfix.util.ReachFixUtil;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.network.play.server.SPacketAnimation;
@@ -78,9 +78,7 @@ public class PacketMainhandAttack implements IMessage {
         }
         
         private static void attemptValidate(PacketMainhandAttack message, EntityPlayerMP player, Entity theEntity) {
-            double reach = ReachFixUtil.getEntityReach(player, EnumHand.MAIN_HAND);
-            double dist = player.getDistanceSq(theEntity);
-            if(dist > reach * reach + 0.5) return;//Small padding to help account for desync
+            if(!ReachFixUtil.isEntityInRange(player, theEntity, EnumHand.MAIN_HAND)) return;
             //Could recheck LOS but likely to cause more noticeable desync issues, rely on distance
             double motionX = Double.isFinite(message.motionX) ? Math.min(Math.max(-100, message.motionX), 100) : 0;
             double motionY = Double.isFinite(message.motionY) ? Math.min(Math.max(-100, message.motionY), 100) : 0;
