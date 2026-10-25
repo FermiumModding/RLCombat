@@ -1,8 +1,10 @@
 package bettercombat.mod.network;
 
+import bettercombat.mod.compat.ModLoadedUtil;
 import bettercombat.mod.util.ConfigurationHandler;
 import bettercombat.mod.util.Helpers;
 import bettercombat.mod.util.ReachFixUtil;
+import bettercombat.mod.util.inf.InFHandler;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.IEntityOwnable;
@@ -81,7 +83,7 @@ public class PacketOffhandAttack implements IMessage {
             ItemStack stackOffHand = player.getHeldItemOffhand();
             if(stackOffHand.isEmpty() || !ConfigurationHandler.isItemAttackUsableOffhand(stackOffHand.getItem())) return;
             if(!ConfigurationHandler.isEntityAttackableOffhand(theEntity)) return;
-            if(!ReachFixUtil.isEntityInRange(player, theEntity, EnumHand.OFF_HAND)) return;
+            if(!ReachFixUtil.isEntityInRange(player, theEntity, EnumHand.OFF_HAND) && (!ModLoadedUtil.isIceAndFireLoaded() || !InFHandler.isMultipartParent(theEntity))) return;
             //Could recheck LOS but likely to cause more noticeable desync issues, rely on distance
             double motionX = Double.isFinite(message.motionX) ? Math.min(Math.max(-100, message.motionX), 100) : 0;
             double motionY = Double.isFinite(message.motionY) ? Math.min(Math.max(-100, message.motionY), 100) : 0;

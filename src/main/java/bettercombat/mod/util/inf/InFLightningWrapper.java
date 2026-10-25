@@ -1,6 +1,7 @@
 package bettercombat.mod.util.inf;
 
 import com.github.alexthe666.iceandfire.entity.util.EntityMultipartPart;
+import net.ilexiconn.llibrary.server.entity.multipart.IMultipartEntity;
 import net.minecraft.entity.Entity;
 
 public abstract class InFLightningWrapper {
@@ -14,5 +15,9 @@ public abstract class InFLightningWrapper {
             return ((EntityMultipartPart)entity).getParent();
         }
         return entity;
+    }
+    
+    public static boolean isMultipartParent(Entity entity) {
+        return entity instanceof IMultipartEntity;
     }
 }
