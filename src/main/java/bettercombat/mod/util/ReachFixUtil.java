@@ -23,6 +23,16 @@ import java.util.List;
  * Credit to https://github.com/Meldexun/ReachFix
  */
 public abstract class ReachFixUtil {
+
+	/**
+	 * Range validator based on meldexun.reachfix.hook.NetHandlerPlayServerHook
+	 */
+	public static boolean isEntityInRange(EntityPlayer player, Entity entity, EnumHand hand) {
+		AxisAlignedBB aabb = BoundingBoxUtil.getInteractionBoundingBox(entity, 1.0F);
+		double distanceSq = BoundingBoxUtil.distanceSq(aabb, player.getPositionEyes(1.0F));
+		double reach = meldexun.reachfix.util.ReachFixUtil.getEntityReach(player, hand) + 1.0D;
+		return distanceSq < reach * reach;
+	}
 	
 	/**
 	 * Directly return ReachFix's normal pointedObject value
